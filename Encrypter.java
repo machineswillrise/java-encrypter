@@ -56,7 +56,7 @@ public class Encrypter {
 	private static final String TITLE = "AES Encrypter";
 	private static final Logger logger = LoggerFactory.getLogger(Encrypter.class);
 
-	private static AESEngine aes;
+	private AESEngine aes;
 
 	private JFrame frame;
 	private JPanel contentPanel;
@@ -68,16 +68,15 @@ public class Encrypter {
 
 	public Encrypter() {
 		prepareGui();
-	}
-
-	public static void main(String[] args) {
 		try {
 			aes = new AESEngine();
 		} catch (NoSuchAlgorithmException e) {
 			logger.error("This JVM does not support AES.");
 			System.exit(1);
 		}
+	}
 
+	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> {
 			Encrypter encrypter = new Encrypter();
 			encrypter.showEncryptionDialog();
