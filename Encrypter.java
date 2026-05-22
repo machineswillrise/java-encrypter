@@ -56,6 +56,8 @@ public class Encrypter {
 	private static final String TITLE = "AES Encrypter";
 	private static final Logger logger = LoggerFactory.getLogger(Encrypter.class);
 
+	private static AESEngine aes;
+
 	private JFrame frame;
 	private JPanel contentPanel;
 
@@ -70,7 +72,7 @@ public class Encrypter {
 
 	public static void main(String[] args) {
 		try {
-			AESUtil.initializeAes();
+			aes = new AESEngine();
 		} catch (NoSuchAlgorithmException e) {
 			logger.error("This JVM does not support AES.");
 			System.exit(1);
@@ -118,7 +120,7 @@ public class Encrypter {
 		encryptedField = field("Encrypted output...");
 
 		JButton generateKeyButton = button("Generate Key", e -> {
-			currentKey = AESUtil.generateKey();
+			currentKey = aes.generateKey();
 			keyField.setText(Base64.getEncoder().encodeToString(currentKey.getEncoded()));
 			keyField.setForeground(Color.BLACK);
 		});
@@ -129,7 +131,7 @@ public class Encrypter {
 				if (currentKey == null)
 					return;
 
-				String encrypted = AESUtil.encrypt(plainTextField.getText(), currentKey);
+				String encrypted = aes.encrypt(plainTextField.getText(), currentKey);
 				encryptedField.setText(encrypted);
 				encryptedField.setForeground(Color.BLACK);
 			} catch (Exception ex) {
@@ -143,7 +145,7 @@ public class Encrypter {
 				if (currentKey == null)
 					return;
 
-				String decrypted = AESUtil.decrypt(encryptedField.getText(), currentKey);
+				String decrypted = aes.decrypt(encryptedField.getText(), currentKey);
 				plainTextField.setText(decrypted);
 				plainTextField.setForeground(Color.BLACK);
 			} catch (Exception ex) {
@@ -258,26 +260,26 @@ class PlaceholderJTextField extends JTextField {
 	}
 }
 
-class AESUtil {
-	private static final Logger logger = LoggerFactory.getLogger(AESUtil.class);
+class AESEngine {
+	private static final Logger logger = LoggerFactory.getLogger(AESEngine.class);
 
 	private static final String ENCRYPTION_ALGORITHM = "AES/GCM/NoPadding";
 	private static final int IV_LENGTH = 12;    /* GCM recommended */
 	private static final int TAG_LENGTH = 128;  /* Authentication tag length */
 
-	private static KeyGenerator keyGenerator;
+	private KeyGenerator keyGenerator;
 
-	public static void initializeAes() throws NoSuchAlgorithmException {
+	public AESEngine() throws NoSuchAlgorithmException {
 		keyGenerator = KeyGenerator.getInstance("AES");
 		keyGenerator.init(256);
 		logger.info("Initialized AES/GCM.");
 	}
 
-	public static SecretKey generateKey() {
+	public SecretKey generateKey() {
 		return keyGenerator.generateKey();
 	}
 
-	public static String encrypt(String plainText, SecretKey secretKey) throws Exception {
+	public String encrypt(String plainText, SecretKey secretKey) throws Exception {
 		/* Generate IV */
 		byte[] iv = new byte[IV_LENGTH];
 		new SecureRandom().nextBytes(iv);
@@ -297,7 +299,7 @@ class AESUtil {
 		return Base64.getEncoder().encodeToString(combined);
 	}
 
-	public static String decrypt(String encryptedText, SecretKey secretKey) throws Exception {
+	public String decrypt(String encryptedText, SecretKey secretKey) throws Exception {
 		byte[] combined = Base64.getDecoder().decode(encryptedText);
 
 		/* Extract IV and ciphertext */
