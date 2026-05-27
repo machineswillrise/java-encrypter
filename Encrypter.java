@@ -57,6 +57,7 @@ public class Encrypter {
 	private static final Logger logger = LoggerFactory.getLogger(Encrypter.class);
 
 	private AESEngine aes;
+	private ClipboardUtil clipboard;
 
 	private JFrame frame;
 	private JPanel contentPanel;
@@ -70,6 +71,7 @@ public class Encrypter {
 		prepareGui();
 		try {
 			aes = new AESEngine();
+			clipboard = new ClipboardUtil(Toolkit.getDefaultToolkit().getSystemClipboard());
 		} catch (NoSuchAlgorithmException e) {
 			logger.error("This JVM does not support AES.");
 			System.exit(1);
@@ -108,7 +110,7 @@ public class Encrypter {
 
 		JButton pasteFromClipboardButton = button("Paste From Clipboard", e -> {
 			try {
-				plainTextField.setText(ClipboardUtil.pasteFromClipboard());
+				plainTextField.setText(clipboard.pasteFromClipboard());
 			} catch (UnsupportedFlavorException | IOException ex) {
 				logger.error("Failed to paste from clipboard!");
 			}
@@ -159,7 +161,7 @@ public class Encrypter {
 			if (isEmpty)
 				return;
 
-			ClipboardUtil.copyToClipboard(content);
+			clipboard.copyToClipboard(content);
 		});
 
 		addAll(
@@ -215,15 +217,19 @@ public class Encrypter {
 }
 
 class ClipboardUtil {
-	public static void copyToClipboard(String text) {
-		Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
-		StringSelection data = new StringSelection(text);
-		cb.setContents(data, null);
+	private Clipboard clipboard;
+
+	public ClipboardUtil(Clipboard clipboard) {
+		this.clipboard = clipboard;
 	}
 
-	public static String pasteFromClipboard() throws UnsupportedFlavorException, IOException {
-		Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
-		Transferable transferable = cb.getContents(null);
+	public void copyToClipboard(String text) {
+		StringSelection data = new StringSelection(text);
+		clipboard.setContents(data, null);
+	}
+
+	public String pasteFromClipboard() throws UnsupportedFlavorException, IOException {
+		Transferable transferable = clipboard.getContents(null);
 
 		if (transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
 			String data = (String)transferable.getTransferData(DataFlavor.stringFlavor);
