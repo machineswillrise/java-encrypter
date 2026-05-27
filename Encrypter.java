@@ -1,41 +1,38 @@
-///usr/bin/env jbang "$0" "$@" ; exit $?
-
-//DEPS org.slf4j:slf4j-api:2.0.18
-//DEPS org.slf4j:slf4j-simple:2.0.18
-
-import java.io.IOException;
-
 import java.awt.Color;
-import java.awt.Container;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
+import java.io.IOException;
 
 import java.nio.charset.StandardCharsets;
 
-import java.security.SecureRandom;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 
 import java.util.Arrays;
 import java.util.Base64;
-
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -44,17 +41,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-import javax.swing.Box;
-
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Encrypter {
 	private static final String TITLE = "AES Encrypter";
-	private static final Logger logger = LoggerFactory.getLogger(Encrypter.class);
+	private static final Logger logger = Logger.getLogger(Encrypter.class.getName());
 
 	private AESEngine aes;
 	private ClipboardUtil clipboard;
@@ -73,7 +63,7 @@ public class Encrypter {
 			aes = new AESEngine();
 			clipboard = new ClipboardUtil(Toolkit.getDefaultToolkit().getSystemClipboard());
 		} catch (NoSuchAlgorithmException e) {
-			logger.error("This JVM does not support AES.");
+			logger.severe("This JVM does not support AES.");
 			System.exit(1);
 		}
 	}
@@ -95,6 +85,7 @@ public class Encrypter {
 		contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
 
 		frame.addWindowListener(new WindowAdapter() {
+			@Override
 			public void windowClosing(WindowEvent event) {
 				logger.info("Encrypter is closing...");
 				System.exit(0);
@@ -112,7 +103,7 @@ public class Encrypter {
 			try {
 				plainTextField.setText(clipboard.pasteFromClipboard());
 			} catch (UnsupportedFlavorException | IOException ex) {
-				logger.error("Failed to paste from clipboard!");
+				logger.severe("Failed to paste from clipboard!");
 			}
 		});
 
@@ -136,7 +127,7 @@ public class Encrypter {
 				encryptedField.setText(encrypted);
 				encryptedField.setForeground(Color.BLACK);
 			} catch (Exception ex) {
-				logger.error("Encryption failed", ex);
+				logger.severe(() -> "Encryption failed: " + ex.getMessage());
 			}
 		});
 
@@ -150,7 +141,7 @@ public class Encrypter {
 				plainTextField.setText(decrypted);
 				plainTextField.setForeground(Color.BLACK);
 			} catch (Exception ex) {
-				logger.error("Decryption failed", ex);
+				logger.severe(() ->"Decryption failed: " + ex.getMessage());
 			}
 		});
 
@@ -182,7 +173,7 @@ public class Encrypter {
 			byte[] keyBytes = Base64.getDecoder().decode(keyField.getText().trim());
 			return new SecretKeySpec(keyBytes, "AES");
 		} catch (IllegalArgumentException e) {
-			logger.error("Invalid base64 key", e);
+			logger.severe(() ->"Invalid base64 key: " + e.getMessage());
 			return null;
 		}
 	}
@@ -217,7 +208,7 @@ public class Encrypter {
 }
 
 class ClipboardUtil {
-	private Clipboard clipboard;
+	private final Clipboard clipboard;
 
 	public ClipboardUtil(Clipboard clipboard) {
 		this.clipboard = clipboard;
@@ -246,6 +237,7 @@ class PlaceholderJTextField extends JTextField {
 		setForeground(Color.GRAY);
 
 		addFocusListener(new FocusAdapter() {
+			@Override
 			public void focusGained(FocusEvent e) {
 				if (getText().equals(placeholder)) {
 					setText("");
@@ -255,6 +247,7 @@ class PlaceholderJTextField extends JTextField {
 		});
 
 		addFocusListener(new FocusAdapter() {
+			@Override
 			public void focusLost(FocusEvent e) {
 				if (getText().isEmpty()) {
 					setText(placeholder);
@@ -266,13 +259,13 @@ class PlaceholderJTextField extends JTextField {
 }
 
 class AESEngine {
-	private static final Logger logger = LoggerFactory.getLogger(AESEngine.class);
+	private static final Logger logger = Logger.getLogger(AESEngine.class.getName());
 
 	private static final String ENCRYPTION_ALGORITHM = "AES/GCM/NoPadding";
 	private static final int IV_LENGTH = 12;    /* GCM recommended */
 	private static final int TAG_LENGTH = 128;  /* Authentication tag length */
 
-	private KeyGenerator keyGenerator;
+	private final KeyGenerator keyGenerator;
 
 	public AESEngine() throws NoSuchAlgorithmException {
 		keyGenerator = KeyGenerator.getInstance("AES");
